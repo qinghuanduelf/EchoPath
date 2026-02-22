@@ -7,7 +7,10 @@ import json
 from datetime import datetime
 from functools import lru_cache
 
-from backend.config import SCHOOL_TIERS_PATH, MATCH_WEIGHTS, EDU_LABEL_TO_TIER
+from backend.config import (
+    SCHOOL_TIERS_PATH, MATCH_WEIGHTS, EDU_LABEL_TO_TIER,
+    FUNCTION_ALIAS_MAP, STATE_FIPS_MAP, LEVEL_ORDER,
+)
 from backend.models.mentor import MatchResult, MentorSnapshot, EducationSummary
 
 
@@ -52,7 +55,7 @@ class MatchEngine:
     # ──────────── Dimension Scorers ────────────
 
     def _score_all_dimensions(self, student: dict, alumni: dict) -> dict:
-        """Compute all 5 dimension scores (each 0-1)."""
+        """Compute all 6 dimension scores (each 0-1)."""
         alumni_origin_fips = alumni.get("origin_fips", "")
         alumni_origin_state = alumni.get("origin_state", "")
 
@@ -77,6 +80,10 @@ class MatchEngine:
                 student.get("target_function", ""),
                 alumni.get("career_function", ""),
             ),
+            "level_score": self._level_score(
+                student.get("target_level", ""),
+                alumni.get("career_end_level", ""),
+            ),
         }
 
     def _geo_score(self, student_fips: str, alumni_fips: str) -> float:
@@ -90,11 +97,13 @@ class MatchEngine:
         return 0.0
 
     def _state_score(self, student_state: str, alumni_state: str) -> float:
-        """Binary: same state → 1.0, else → 0.0."""
+        """Same state → 1.0, else → 0.0.  Handles FIPS prefix or full name."""
         if not student_state or not alumni_state:
             return 0.0
-        # Handle both full name and abbreviation
-        return 1.0 if student_state.lower() == alumni_state.lower() else 0.0
+        # Normalise student_state: convert 2-digit FIPS prefix to full name
+        s = STATE_FIPS_MAP.get(student_state, student_state).lower()
+        a = alumni_state.lower()
+        return 1.0 if s == a else 0.0
 
     def _edu_tier_score(self, student_edu: str, alumni_education: list) -> float:
         """Education tier proximity: tier gap 0→1.0, 1→0.75, ..., 4+→0.0."""
@@ -116,10 +125,37 @@ class MatchEngine:
         return max(0.0, 1.0 - abs(student_hs - alumni_hs))
 
     def _function_score(self, target_fn: str, alumni_fn: str) -> float:
-        """Career function match: exact match → 1.0, else → 0.0."""
+        """Career function match via alias mapping.
+        Direct alias hit → 1.0, partial keyword overlap → 0.3, else → 0.0."""
         if not target_fn or not alumni_fn:
             return 0.0
-        return 1.0 if target_fn.lower() == alumni_fn.lower() else 0.0
+
+        # Exact match (case-insensitive)
+        if target_fn.lower() == alumni_fn.lower():
+            return 1.0
+
+        # Alias map lookup
+        aliases = FUNCTION_ALIAS_MAP.get(target_fn, [])
+        if alumni_fn in aliases:
+            return 1.0
+
+        # Partial keyword overlap (e.g. "Marketing" in "Marketing and Product")
+        t_lower = target_fn.lower()
+        a_lower = alumni_fn.lower()
+        if t_lower in a_lower or a_lower in t_lower:
+            return 0.5
+
+        return 0.0
+
+    def _level_score(self, target_level: str, alumni_level: str) -> float:
+        """Career level proximity: closer levels score higher."""
+        if not target_level or not alumni_level:
+            return 0.3  # neutral default
+        t = LEVEL_ORDER.get(target_level, 3)
+        a = LEVEL_ORDER.get(alumni_level, 3)
+        diff = abs(t - a)
+        # 0 gap → 1.0, 1 → 0.85, 2 → 0.7, … 7 → 0.0
+        return max(0.0, round(1.0 - diff * 0.15, 4))
 
     # ──────────── Helpers ────────────
 

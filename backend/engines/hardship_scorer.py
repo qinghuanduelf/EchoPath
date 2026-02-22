@@ -7,7 +7,7 @@ Also provides Zip → FIPS resolution via HUD crosswalk data.
 import pandas as pd
 from functools import lru_cache
 
-from backend.config import CENSUS_CSV_PATH, FIPS_ZIP_MAP_PATH
+from backend.config import CENSUS_CSV_PATH, FIPS_ZIP_MAP_PATH, STATE_FIPS_MAP
 
 
 class HardshipScorer:
@@ -70,5 +70,6 @@ class HardshipScorer:
         return clean
 
     def get_state_from_fips(self, fips_code: str) -> str:
-        """Extract 2-digit state FIPS prefix."""
-        return fips_code[:2] if fips_code and len(fips_code) >= 2 else ""
+        """Convert FIPS code to full state name via 2-digit prefix lookup."""
+        prefix = fips_code[:2] if fips_code and len(fips_code) >= 2 else ""
+        return STATE_FIPS_MAP.get(prefix, prefix)
