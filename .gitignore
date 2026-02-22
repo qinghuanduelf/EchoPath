@@ -1,0 +1,28 @@
+# Virtual Environments
+venv/
+venv_rapidfire*/
+venv_rapidfire312/
+
+# Node dependencies
+node_modules/
+frontend/node_modules/
+
+# Large Data files
+*.jsonl
+live_data_persons_history_*.jsonl
+*.csv
+*.json
+!package.json
+!tsconfig.json
+!school_tiers.json
+
+# OS files
+.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local config
+.env
+.env.local

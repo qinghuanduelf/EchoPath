@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #0a0a12;
+  --color-foreground: #e8e8f0;
+  --color-primary: #667eea;
+  --color-primary-light: #7c94f4;
+  --color-secondary: #764ba2;
+  --color-accent: #f093fb;
+  --color-surface: #141422;
+  --color-surface-light: #1e1e36;
+  --color-border: #2a2a48;
+  --color-muted: #8888aa;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --font-sans: "Inter", sans-serif;
+}
+
+/* Base */
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(20, 20, 34, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(102, 126, 234, 0.15);
+}
+
+.glass-hover:hover {
+  background: rgba(30, 30, 54, 0.7);
+  border-color: rgba(102, 126, 234, 0.35);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient border animation */
+@keyframes gradient-border {
+  0%, 100% { border-color: #667eea; }
+  33% { border-color: #764ba2; }
+  66% { border-color: #f093fb; }
+}
+
+.animate-gradient-border {
+  animation: gradient-border 4s ease-in-out infinite;
+}
+
+/* Glow */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3), 0 0 60px rgba(102, 126, 234, 0.1);
+}
+
+/* Pulse dot */
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.5; }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Button styles */
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+.btn-primary:active {
+  transform: translateY(0);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Form inputs */
+.input-field {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--color-foreground);
+  width: 100%;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+.input-field:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+.input-field::placeholder {
+  color: var(--color-muted);
+}
+
+select.input-field {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238888aa' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+/* React Flow overrides */
+.react-flow__background {
+  background-color: transparent !important;
+}
+.react-flow__controls {
+  box-shadow: none !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  background: var(--color-surface) !important;
+  border-bottom-color: var(--color-border) !important;
+  fill: var(--color-muted) !important;
+}
+.react-flow__controls-button:hover {
+  background: var(--color-surface-light) !important;
+}
