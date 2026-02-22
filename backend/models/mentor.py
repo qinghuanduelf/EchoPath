@@ -18,6 +18,8 @@ class MentorSnapshot(BaseModel):
     current_level: Optional[str] = None
     industry: Optional[str] = None
     company_size: Optional[int] = None
+    initial_salary: Optional[int] = None
+    final_salary: Optional[int] = None
     education_summary: list[EducationSummary] = []
 
 

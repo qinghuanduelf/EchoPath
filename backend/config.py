@@ -107,12 +107,13 @@ TIER_LABELS = {
 
 # Match engine weights
 MATCH_WEIGHTS = {
-    "geo_score": 0.20,
-    "edu_tier_score": 0.20,
-    "hardship_score": 0.15,
-    "function_score": 0.20,
-    "state_score": 0.10,
-    "level_score": 0.15,
+    "geo_score": 1 / 7,
+    "edu_tier_score": 1 / 7,
+    "hardship_score": 1 / 7,
+    "function_score": 1 / 7,
+    "state_score": 1 / 7,
+    "level_score": 1 / 7,
+    "salary_score": 1 / 7,
 }
 
 # Frontend target_function → alumni career_function alias mapping

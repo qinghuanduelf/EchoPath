@@ -92,6 +92,37 @@ class TestAnalyze:
         data = resp.json()
         assert "session_id" in data
 
+    def test_analyze_with_zip_plus4(self, client):
+        payload = {
+            "zip_code": "90210-1234",
+            "current_education": "High School",
+            "target_function": "Software Engineering",
+            "target_level": "Staff",
+        }
+        resp = client.post("/api/v1/student/analyze", json=payload)
+        assert resp.status_code == 200
+        assert "session_id" in resp.json()
+
+    def test_analyze_with_non_us_zip_rejected(self, client):
+        payload = {
+            "zip_code": "M5V3L9",
+            "current_education": "High School",
+            "target_function": "Software Engineering",
+            "target_level": "Staff",
+        }
+        resp = client.post("/api/v1/student/analyze", json=payload)
+        assert resp.status_code == 422
+
+    def test_analyze_with_out_of_range_zip_rejected(self, client):
+        payload = {
+            "zip_code": "00001",
+            "current_education": "High School",
+            "target_function": "Software Engineering",
+            "target_level": "Staff",
+        }
+        resp = client.post("/api/v1/student/analyze", json=payload)
+        assert resp.status_code == 422
+
     def test_analyze_missing_location(self, client):
         payload = {
             "current_education": "High School",

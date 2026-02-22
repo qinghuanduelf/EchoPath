@@ -69,6 +69,15 @@ class HardshipScorer:
         # Fallback: return as-is (caller handles unknown)
         return clean
 
+    def resolve_zip_to_fips(self, zip_code: str) -> str | None:
+        """
+        Resolve a US ZIP code to FIPS.
+        Supports ZIP+4 by normalizing to ZIP5.
+        """
+        clean = zip_code.strip()
+        zip5 = clean[:5]
+        return self._zip_to_fips.get(zip5)
+
     def get_state_from_fips(self, fips_code: str) -> str:
         """Convert FIPS code to full state name via 2-digit prefix lookup."""
         prefix = fips_code[:2] if fips_code and len(fips_code) >= 2 else ""

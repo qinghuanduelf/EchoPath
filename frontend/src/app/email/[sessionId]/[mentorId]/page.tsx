@@ -7,10 +7,13 @@ import {
     generateEmail,
     regenerateEmail,
     getMatchDetail,
+    getStudentMatches,
     type EmailResponse,
     type MentorSnapshot,
+    type MatchResult,
 } from "@/lib/api";
 import EmailPreview from "@/components/EmailPreview";
+import { useI18n } from "@/components/LanguageProvider";
 
 interface PageProps {
     params: Promise<{ sessionId: string; mentorId: string }>;
@@ -19,11 +22,13 @@ interface PageProps {
 export default function EmailPage({ params }: PageProps) {
     const { sessionId, mentorId } = use(params);
     const router = useRouter();
+    const { t } = useI18n();
     const searchParams = useSearchParams();
     const score = parseFloat(searchParams.get("score") || "0.5");
 
     const [emailData, setEmailData] = useState<EmailResponse | null>(null);
     const [mentor, setMentor] = useState<MentorSnapshot | null>(null);
+    const [match, setMatch] = useState<MatchResult | null>(null);
     const [loading, setLoading] = useState(true);
     const [regenerating, setRegenerating] = useState(false);
     const [error, setError] = useState("");
@@ -31,16 +36,18 @@ export default function EmailPage({ params }: PageProps) {
     useEffect(() => {
         async function load() {
             try {
-                const [emailRes, mentorRes] = await Promise.all([
+                const [emailRes, mentorRes, matchRes] = await Promise.all([
                     generateEmail({
                         student_id: sessionId,
                         mentor_id: mentorId,
                         match_score: score,
                     }),
                     getMatchDetail(mentorId),
+                    getStudentMatches(sessionId),
                 ]);
                 setEmailData(emailRes);
                 setMentor(mentorRes.snapshot);
+                setMatch(matchRes.matches.find((m) => m.profile_id === mentorId) || null);
             } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : "Failed to generate email.");
             } finally {
@@ -49,6 +56,34 @@ export default function EmailPage({ params }: PageProps) {
         }
         load();
     }, [sessionId, mentorId, score]);
+
+    const explainBullets = (() => {
+        if (!match) return [];
+        const s = match.dimension_scores;
+        const rows: Array<{ value: number; text: string }> = [
+            { value: s.geo_score || 0, text: "Similar geography (same state/region context)" },
+            { value: s.edu_tier_score || 0, text: "Similar education tier starting point" },
+            { value: s.hardship_score || 0, text: "Similar hardship-constrained starting conditions" },
+            { value: s.function_score || 0, text: "Aligned target function and career direction" },
+            { value: s.salary_score || 0, text: "Salary trajectory aligns with your expected range" },
+        ];
+        return rows
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 3)
+            .map((r) => `${r.text} (${Math.round(r.value * 100)}%)`);
+    })();
+
+    const hooks = (() => {
+        const base = [
+            "I’m building my path from a similar starting point and navigating limited local career resources.",
+            "Your progression stood out because it looks both ambitious and realistically reachable.",
+            "I’d value a short 15-minute conversation on what helped your first major transition.",
+        ];
+        if (match?.dimension_scores.salary_score && match.dimension_scores.salary_score > 0.7) {
+            base.unshift("Your salary progression closely matches the range I’m targeting, which is especially helpful for planning.");
+        }
+        return base.slice(0, 3);
+    })();
 
     const handleRegenerate = async () => {
         setRegenerating(true);
@@ -99,10 +134,10 @@ export default function EmailPage({ params }: PageProps) {
                     onClick={() => router.back()}
                     className="text-sm text-[var(--color-muted)] hover:text-[var(--color-foreground)] transition-colors mb-4"
                 >
-                    ← Back to Results
+                    ← {t("email.back")}
                 </button>
                 <h1 className="text-3xl font-bold">
-                    Connect with{" "}
+                    {t("email.connectWith")}{" "}
                     <span className="gradient-text">{emailData?.mentor_label || "Mentor"}</span>
                 </h1>
                 {emailData?.provider && (
@@ -163,6 +198,32 @@ export default function EmailPage({ params }: PageProps) {
                 </motion.div>
             )}
 
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="glass rounded-2xl p-6"
+            >
+                <h2 className="font-semibold mb-3 text-sm uppercase tracking-wider text-[var(--color-muted)]">
+                    {t("email.whyMatched")}
+                </h2>
+                <ul className="space-y-2 text-sm">
+                    {(explainBullets.length ? explainBullets : [
+                        "Similar geography context",
+                        "Similar education tier",
+                        "Similar hardship starting point",
+                    ]).map((b) => (
+                        <li key={b} className="text-[var(--color-muted)]">• {b}</li>
+                    ))}
+                </ul>
+                <h3 className="font-semibold mt-4 mb-2 text-sm">{t("email.hooks")}</h3>
+                <ul className="space-y-2 text-sm text-[var(--color-muted)]">
+                    {hooks.map((h) => (
+                        <li key={h}>• {h}</li>
+                    ))}
+                </ul>
+            </motion.div>
+
             {/* Email preview */}
             {emailData && (
                 <EmailPreview
@@ -181,7 +242,7 @@ export default function EmailPage({ params }: PageProps) {
                 transition={{ delay: 0.3 }}
                 className="glass rounded-2xl p-6"
             >
-                <h3 className="font-semibold mb-3">💡 Tips for Reaching Out</h3>
+                <h3 className="font-semibold mb-3">💡 {t("email.tips")}</h3>
                 <ul className="space-y-2 text-sm text-[var(--color-muted)]">
                     <li>✅ Send the email through LinkedIn InMail or their public contact</li>
                     <li>✅ Mention a specific part of their career that inspires you</li>

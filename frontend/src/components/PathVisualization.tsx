@@ -4,13 +4,11 @@ import { useCallback, useMemo } from "react";
 import {
     ReactFlow,
     Background,
-    Controls,
     type Node,
     type Edge,
     Position,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { motion } from "framer-motion";
 import type { CareerPath } from "@/lib/api";
 
 interface PathVisualizationProps {
@@ -49,22 +47,33 @@ function buildFlowData(paths: CareerPath[]) {
 
     paths.forEach((path, pathIdx) => {
         const yOffset = pathIdx * Y_GAP;
+        const sourceLabel =
+            path.source === "rapidfire"
+                ? "Evidence-ranked"
+                : "Prototype sample (demo)";
+        const evidenceLabel =
+            (path.evidence_count ?? 0) > 0
+                ? `evidence: ${path.evidence_count} alumni trajectory signals`
+                : "evidence: limited in demo";
+        const whyPath =
+            "Why this path: similar education starting point + realistic progression toward your target role.";
 
         // Path label node (left side)
         const pathLabelId = `path-label-${pathIdx}`;
         nodes.push({
             id: pathLabelId,
-            position: { x: -180, y: yOffset + 15 },
+            position: { x: -280, y: yOffset + 15 },
             data: {
-                label: `Path ${pathIdx + 1} · ${path.total_people} people · ~${path.avg_years}yr\n${(path.source || "path_builder").toUpperCase()} · evidence ${path.evidence_count ?? 0}`,
+                label: `Path ${pathIdx + 1} · ${path.total_people} people · ~${path.avg_years}yr\n${sourceLabel}\n${evidenceLabel}\n${whyPath}`,
             },
             style: {
                 background: "transparent",
                 border: "none",
                 color: "#8888aa",
                 fontSize: "12px",
-                width: 160,
+                width: 260,
                 textAlign: "right" as const,
+                whiteSpace: "pre-line" as const,
             },
             draggable: false,
             selectable: false,
@@ -105,7 +114,7 @@ function buildFlowData(paths: CareerPath[]) {
                     id: `e-${prevId}-${nodeId}`,
                     source: prevId,
                     target: nodeId,
-                    animated: true,
+                    animated: false,
                     style: { stroke: stage.border, strokeWidth: 2, opacity: 0.6 },
                 });
             }
@@ -117,7 +126,7 @@ function buildFlowData(paths: CareerPath[]) {
 
 export default function PathVisualization({ paths }: PathVisualizationProps) {
     const { nodes, edges } = useMemo(() => buildFlowData(paths), [paths]);
-    const onInit = useCallback(() => { }, []);
+    const onInit = useCallback(() => {}, []);
 
     if (paths.length === 0) {
         return (
@@ -129,27 +138,29 @@ export default function PathVisualization({ paths }: PathVisualizationProps) {
     }
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+        <div
             className="glass rounded-2xl overflow-hidden"
-            style={{ height: Math.max(300, paths.length * 180 + 100) }}
+            style={{ height: 620 }}
         >
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
                 onInit={onInit}
                 fitView
-                fitViewOptions={{ padding: 0.3 }}
-                panOnScroll
+                fitViewOptions={{ padding: 0.28 }}
+                panOnScroll={false}
+                panOnDrag={false}
                 zoomOnScroll={false}
+                zoomOnPinch={false}
+                zoomOnDoubleClick={false}
+                preventScrolling={false}
                 proOptions={{ hideAttribution: true }}
                 nodesDraggable={false}
                 nodesConnectable={false}
+                elementsSelectable={false}
             >
                 <Background color="#2a2a48" gap={20} size={1} />
-                <Controls showInteractive={false} />
             </ReactFlow>
-        </motion.div>
+        </div>
     );
 }

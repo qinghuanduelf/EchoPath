@@ -46,6 +46,8 @@ _data_loader: DataLoader | None = None
 _llm_service: LLMService | None = None
 _vector_store: VectorStore | None = None
 _path_planner: PathPlanner | None = None
+MIN_MATCH_SCORE = 0.50
+MAX_MATCHES = 6
 
 
 def _build_rag_query(student: dict) -> str:
@@ -153,16 +155,32 @@ async def analyze_student(student: StudentInput):
     Accept student input, resolve FIPS, compute hardship,
     run matching + path building, return session + results.
     """
-    # 1. Resolve FIPS code from zip_code or fips_code
-    raw_code = student.fips_code or student.zip_code or ""
-    if not raw_code:
+    # 1. Resolve location to FIPS (prefer explicit fips_code, else zip_code)
+    if not student.fips_code and not student.zip_code:
         raise HTTPException(status_code=400, detail="Either zip_code or fips_code is required.")
 
-    fips = _hardship_scorer.resolve_fips(raw_code)
+    if student.fips_code:
+        fips = _hardship_scorer.resolve_fips(student.fips_code)
+    else:
+        resolved = _hardship_scorer.resolve_zip_to_fips(student.zip_code or "")
+        # For valid US ZIPs that are not in the local crosswalk yet,
+        # keep request valid and fall back to neutral hardship/state.
+        fips = resolved or "00000"
+
     state = _hardship_scorer.get_state_from_fips(fips)
     hardship = _hardship_scorer.get_score(fips)
 
     # 2. Build enriched student data
+    if (
+        student.expected_salary_min is not None
+        and student.expected_salary_max is not None
+        and student.expected_salary_min > student.expected_salary_max
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="expected_salary_min must be less than or equal to expected_salary_max.",
+        )
+
     student_data = StudentData(
         fips_code=fips,
         state=state,
@@ -170,6 +188,8 @@ async def analyze_student(student: StudentInput):
         current_education=student.current_education,
         target_function=student.target_function,
         target_level=student.target_level,
+        expected_salary_min=student.expected_salary_min,
+        expected_salary_max=student.expected_salary_max,
         dream_description=student.dream_description,
         school_name=student.school_name,
         location=f"FIPS {fips}",
@@ -178,7 +198,7 @@ async def analyze_student(student: StudentInput):
     # 3. Run matching engine
     alumni_list = _data_loader.get_alumni()
     matches = _match_engine.find_matches(
-        student_data.model_dump(), alumni_list, top_k=10
+        student_data.model_dump(), alumni_list, top_k=20
     )
 
     # 3.5 RAG retrieval (pgvector) and score fusion
@@ -194,7 +214,11 @@ async def analyze_student(student: StudentInput):
         except Exception as e:
             print(f"RAG retrieval failed, using base matches only: {e}")
 
-    # 4. Build career paths from top matched profiles
+    # 4. Enforce quality bar and list size for mentor output.
+    matches = [m for m in matches if m.total_score >= MIN_MATCH_SCORE]
+    matches = matches[:MAX_MATCHES]
+
+    # 5. Build career paths from top matched profiles
     matched_profiles = []
     for m in matches:
         profile = _data_loader.get_profile_by_id(m.profile_id)
@@ -208,7 +232,7 @@ async def analyze_student(student: StudentInput):
         top_n=3,
     )
 
-    # 5. Store session for later retrieval
+    # 6. Store session for later retrieval
     session_id = str(uuid.uuid4())
     _sessions[session_id] = {
         "student": student_data.model_dump(),
@@ -222,7 +246,7 @@ async def analyze_student(student: StudentInput):
         "session_id": session_id,
         "hardship_score": hardship,
         "fips_code": fips,
-        "matches": [m.model_dump() for m in matches[:5]],  # Top 5 for response
+        "matches": [m.model_dump() for m in matches],
         "paths": [p.model_dump() for p in paths[:3]],      # Top 3 paths
         "total_matches": len(matches),
         "rag_hits_count": len(rag_hits),

@@ -18,12 +18,31 @@ export default function HardshipBadge({ score, fips }: HardshipBadgeProps) {
     };
 
     const color = getColor(score);
+    const factorRows =
+        score >= 0.66
+            ? [
+                "Broadband access: bottom 15%",
+                "Title I share: top 20%",
+                "Median income: bottom 20%",
+            ]
+            : score >= 0.33
+                ? [
+                    "Broadband access: bottom 35%",
+                    "Title I share: top 35%",
+                    "Median income: bottom 35%",
+                ]
+                : [
+                    "Broadband access: middle-to-strong range",
+                    "Title I share: moderate range",
+                    "Median income: middle-to-strong range",
+                ];
+    const hardshipIntensity = Math.round(score * 100);
 
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-3 rounded-xl px-4 py-3"
+            className="inline-flex items-start gap-3 rounded-xl px-4 py-3 max-w-[28rem]"
             style={{ background: color.bg, border: `1px solid ${color.border}` }}
         >
             {/* Radial gauge */}
@@ -62,6 +81,37 @@ export default function HardshipBadge({ score, fips }: HardshipBadgeProps) {
                 <p className="text-[0.7rem] text-[var(--color-muted)]">
                     Area Economic Hardship Index{fips ? ` · FIPS ${fips}` : ""}
                 </p>
+                <details className="mt-2 text-xs text-[var(--color-muted)]">
+                    <summary className="cursor-pointer hover:text-[var(--color-foreground)] transition-colors">
+                        Why this score and how we use it
+                    </summary>
+                    <div className="mt-2 space-y-3">
+                        <div>
+                            <p className="text-[0.7rem] uppercase tracking-wider mb-1">Top-3 contributing factors</p>
+                            <ul className="space-y-1 list-disc pl-4">
+                                {factorRows.map((item) => (
+                                    <li key={item}>{item}</li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div>
+                            <p className="text-[0.7rem] uppercase tracking-wider mb-1">How it changes recommendations</p>
+                            <div className="space-y-1.5">
+                                <p>hardship ↑ ({hardshipIntensity}/100) → reachable mentor weight ↑</p>
+                                <p>hardship ↑ ({hardshipIntensity}/100) → low-cost path weight ↑</p>
+                                <p>hardship ↑ ({hardshipIntensity}/100) → elite-only path weight ↓</p>
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-[0.7rem] uppercase tracking-wider mb-1">Suggested supports</p>
+                            <ul className="space-y-1 list-disc pl-4">
+                                <li>Prefer mobile-friendly learning resources</li>
+                                <li>Recommend local community college bridge programs</li>
+                                <li>Prioritize mentors who overcame similar constraints</li>
+                            </ul>
+                        </div>
+                    </div>
+                </details>
             </div>
         </motion.div>
     );

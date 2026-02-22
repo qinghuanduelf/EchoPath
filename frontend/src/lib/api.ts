@@ -13,6 +13,8 @@ export interface StudentInput {
     current_education: string;
     target_function: string;
     target_level: string;
+    expected_salary_min?: number;
+    expected_salary_max?: number;
     dream_description?: string;
     school_name?: string;
 }
@@ -27,6 +29,8 @@ export interface MentorSnapshot {
     current_level: string | null;
     industry: string | null;
     company_size: number | null;
+    initial_salary?: number | null;
+    final_salary?: number | null;
     education_summary: EducationSummary[];
 }
 

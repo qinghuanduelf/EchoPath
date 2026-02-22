@@ -7,6 +7,7 @@ import {
     ArrowPathIcon,
     CheckIcon,
 } from "@heroicons/react/24/outline";
+import { useI18n } from "@/components/LanguageProvider";
 
 interface EmailPreviewProps {
     email: string;
@@ -23,6 +24,7 @@ export default function EmailPreview({
     onRegenerate,
     isRegenerating,
 }: EmailPreviewProps) {
+    const { t } = useI18n();
     const [editedEmail, setEditedEmail] = useState(email);
     const [copied, setCopied] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -47,7 +49,7 @@ export default function EmailPreview({
             {/* Header */}
             <div className="px-6 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
                 <div>
-                    <h3 className="font-semibold text-lg">Icebreaker Email</h3>
+                    <h3 className="font-semibold text-lg">{t("email.previewTitle")}</h3>
                     <p className="text-sm text-[var(--color-muted)]">
                         To: {mentorLabel} · Match Score: {Math.round(matchScore * 100)}%
                     </p>
@@ -61,7 +63,7 @@ export default function EmailPreview({
                        hover:border-[var(--color-primary)] transition-all disabled:opacity-50"
                     >
                         <ArrowPathIcon className={`w-4 h-4 ${isRegenerating ? "animate-spin" : ""}`} />
-                        Regenerate
+                        {t("email.regenerate")}
                     </button>
                     <button
                         onClick={handleCopy}
@@ -72,12 +74,12 @@ export default function EmailPreview({
                         {copied ? (
                             <>
                                 <CheckIcon className="w-4 h-4 text-[var(--color-success)]" />
-                                <span className="text-[var(--color-success)]">Copied!</span>
+                                <span className="text-[var(--color-success)]">{t("email.copied")}</span>
                             </>
                         ) : (
                             <>
                                 <ClipboardDocumentIcon className="w-4 h-4" />
-                                Copy
+                                {t("email.copy")}
                             </>
                         )}
                     </button>

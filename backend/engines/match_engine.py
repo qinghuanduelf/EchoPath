@@ -84,6 +84,12 @@ class MatchEngine:
                 student.get("target_level", ""),
                 alumni.get("career_end_level", ""),
             ),
+            "salary_score": self._salary_score(
+                student.get("expected_salary_min"),
+                student.get("expected_salary_max"),
+                alumni.get("initial_salary"),
+                alumni.get("final_salary"),
+            ),
         }
 
     def _geo_score(self, student_fips: str, alumni_fips: str) -> float:
@@ -157,6 +163,45 @@ class MatchEngine:
         # 0 gap → 1.0, 1 → 0.85, 2 → 0.7, … 7 → 0.0
         return max(0.0, round(1.0 - diff * 0.15, 4))
 
+    @staticmethod
+    def _distance_to_range(value: int, low: int, high: int) -> int:
+        if value < low:
+            return low - value
+        if value > high:
+            return value - high
+        return 0
+
+    def _salary_score(
+        self,
+        student_min: int | None,
+        student_max: int | None,
+        alumni_initial: int | None,
+        alumni_final: int | None,
+    ) -> float:
+        """
+        Salary range affinity.
+        - If student range is not provided, keep neutral score (0.5).
+        - If mentor salary fields are missing, keep neutral score (0.5).
+        - Closer initial/final salary to expected range => higher score.
+        """
+        if student_min is None or student_max is None:
+            return 0.5
+
+        low = min(student_min, student_max)
+        high = max(student_min, student_max)
+        span = max(10000, high - low)
+
+        values = [v for v in [alumni_initial, alumni_final] if isinstance(v, int) and v >= 0]
+        if not values:
+            return 0.5
+
+        scores: list[float] = []
+        for val in values:
+            dist = self._distance_to_range(val, low, high)
+            score = max(0.0, 1.0 - (dist / span))
+            scores.append(score)
+        return round(sum(scores) / len(scores), 4)
+
     # ──────────── Helpers ────────────
 
     def _school_to_tier(self, school_name: str) -> int:
@@ -182,5 +227,7 @@ class MatchEngine:
             current_level=position.get("level"),
             industry=company.get("industry"),
             company_size=company.get("employee_count"),
+            initial_salary=alumni.get("initial_salary"),
+            final_salary=alumni.get("final_salary"),
             education_summary=edu_summary,
         )

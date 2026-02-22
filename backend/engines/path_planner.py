@@ -3,6 +3,7 @@ Path Planner — Rapidfire-first path ranking with deterministic fallback.
 """
 
 import json
+import re
 
 from backend.engines.path_builder import PathBuilder
 from backend.models.path import CareerPath
@@ -15,6 +16,8 @@ class PathPlanner:
     def __init__(self, path_builder: PathBuilder, llm_service: LLMService | None = None):
         self.path_builder = path_builder
         self.llm_service = llm_service
+        # Global in-memory exposure counter to reduce repeated path templates.
+        self._path_impression_counts: dict[str, int] = {}
 
     async def plan_paths(
         self,
@@ -26,7 +29,7 @@ class PathPlanner:
         base_paths = self.path_builder.build_paths(
             matched_profiles,
             target_function=student.get("target_function", ""),
-            top_n=max(top_n, 5),
+            top_n=max(top_n, 12),
         )
         rag_hits = rag_hits or []
         evidence_count = len({h.get("profile_id", "") for h in rag_hits if h.get("profile_id")})
@@ -35,6 +38,7 @@ class PathPlanner:
             return [], {"source": "fallback", "evidence_count": evidence_count}
 
         if not self.llm_service or not rag_hits:
+            selected = self._select_diverse_paths(base_paths, top_n)
             fallback_paths = [
                 p.model_copy(
                     update={
@@ -43,7 +47,7 @@ class PathPlanner:
                         "evidence_count": evidence_count,
                     }
                 )
-                for p in base_paths[:top_n]
+                for p in selected
             ]
             return fallback_paths, {"source": "fallback", "evidence_count": evidence_count}
 
@@ -70,6 +74,7 @@ class PathPlanner:
             return ranked_paths[:top_n], {"source": "rapidfire", "evidence_count": evidence_count}
         except Exception as e:
             print(f"Rapidfire path planner failed, fallback to PathBuilder: {e}")
+            selected = self._select_diverse_paths(base_paths, top_n)
             fallback_paths = [
                 p.model_copy(
                     update={
@@ -78,9 +83,80 @@ class PathPlanner:
                         "evidence_count": evidence_count,
                     }
                 )
-                for p in base_paths[:top_n]
+                for p in selected
             ]
             return fallback_paths, {"source": "fallback", "evidence_count": evidence_count}
+
+    @staticmethod
+    def _path_signature(path: CareerPath) -> set[str]:
+        """
+        Normalize path labels into a token set for simple similarity checks.
+        """
+        text = " ".join(node.label.lower() for node in path.nodes)
+        return set(re.findall(r"[a-z0-9]+", text))
+
+    def _path_signature_key(self, path: CareerPath) -> str:
+        # Stable key for repetition tracking across requests.
+        return " | ".join(node.label.strip().lower() for node in path.nodes)
+
+    def _select_diverse_paths(self, paths: list[CareerPath], top_n: int) -> list[CareerPath]:
+        """
+        Greedy diversity selection from candidate paths.
+        Keeps high-support paths while avoiding near-duplicates.
+        """
+        if len(paths) <= top_n:
+            return paths[:top_n]
+
+        max_people = max((p.total_people for p in paths), default=1) or 1
+        selected: list[CareerPath] = []
+        selected_signatures: list[set[str]] = []
+        remaining = list(paths)
+
+        while remaining and len(selected) < top_n:
+            min_seen_in_pool = min(
+                self._path_impression_counts.get(self._path_signature_key(p), 0)
+                for p in remaining
+            )
+            best_idx = 0
+            best_score = -1.0
+            for idx, candidate in enumerate(remaining):
+                support = candidate.total_people / max_people
+                sig = self._path_signature(candidate)
+                seen = self._path_impression_counts.get(self._path_signature_key(candidate), 0)
+                freshness = 1.0 / (1.0 + seen)
+                if not selected:
+                    if seen > min_seen_in_pool:
+                        # Force first pick to rotate toward less-exposed templates.
+                        continue
+                    # For the first pick, balance quality with anti-repeat freshness.
+                    score = 0.60 * support + 0.40 * freshness
+                    if score > best_score:
+                        best_score = score
+                        best_idx = idx
+                    continue
+                max_overlap = 0.0
+                for picked in selected_signatures:
+                    union = len(sig | picked) or 1
+                    overlap = len(sig & picked) / union
+                    if overlap > max_overlap:
+                        max_overlap = overlap
+                novelty = 1.0 - max_overlap
+                # Bias toward diversity while preserving path quality, and penalize repeats.
+                score = 0.45 * novelty + 0.35 * support + 0.20 * freshness
+                if score > best_score:
+                    best_score = score
+                    best_idx = idx
+
+            chosen = remaining.pop(best_idx)
+            selected.append(chosen)
+            selected_signatures.append(self._path_signature(chosen))
+
+        # Update repetition memory with selected items.
+        for path in selected:
+            key = self._path_signature_key(path)
+            self._path_impression_counts[key] = self._path_impression_counts.get(key, 0) + 1
+
+        return selected
 
     async def _rapidfire_rank(
         self,

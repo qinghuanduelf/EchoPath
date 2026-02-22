@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { analyzeStudent, type StudentInput } from "@/lib/api";
+import { useI18n } from "@/components/LanguageProvider";
 import {
   EDUCATION_OPTIONS,
   FUNCTION_OPTIONS,
@@ -12,6 +13,7 @@ import {
 
 export default function HomePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,8 +26,15 @@ export default function HomePage() {
     school_name: "",
   });
 
-  const update = (key: keyof StudentInput, value: string) =>
+  const update = (key: keyof StudentInput, value: string | number | undefined) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const isValidUsZip = (zip: string) => {
+    const clean = zip.trim();
+    if (!/^\d{5}(-\d{4})?$/.test(clean)) return false;
+    const zip5 = Number.parseInt(clean.slice(0, 5), 10);
+    return zip5 >= 501 && zip5 <= 99950;
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -35,8 +44,20 @@ export default function HomePage() {
       setError("Please enter a Zip Code or FIPS Code.");
       return;
     }
+    if (form.zip_code && !isValidUsZip(form.zip_code)) {
+      setError("Please enter a valid US ZIP code (12345 or 12345-6789, range 00501-99950).");
+      return;
+    }
     if (!form.current_education || !form.target_function || !form.target_level) {
       setError("Please fill in all required fields.");
+      return;
+    }
+    if (
+      form.expected_salary_min !== undefined &&
+      form.expected_salary_max !== undefined &&
+      form.expected_salary_min > form.expected_salary_max
+    ) {
+      setError("Expected salary min must be less than or equal to max.");
       return;
     }
 
@@ -60,12 +81,10 @@ export default function HomePage() {
         className="text-center mb-12 max-w-2xl"
       >
         <h1 className="text-4xl sm:text-5xl font-bold mb-4 leading-tight">
-          Find Your{" "}
-          <span className="gradient-text">Career Path</span>
+          <span className="gradient-text">{t("home.title")}</span>
         </h1>
-        <p className="text-lg text-[var(--color-muted)] leading-relaxed">
-          Discover real career journeys from people who started where you are.
-          Connect with mentors who understand your background.
+        <p className="text-sm sm:text-base font-medium text-[var(--color-foreground)]/90 mb-2">
+          {t("home.subtitle")}
         </p>
       </motion.div>
 
@@ -77,9 +96,9 @@ export default function HomePage() {
         onSubmit={handleSubmit}
         className="glass rounded-2xl p-8 w-full max-w-2xl space-y-6 glow-primary"
       >
-        <h2 className="text-xl font-semibold mb-1">Tell us about yourself</h2>
+        <h2 className="text-xl font-semibold mb-1">{t("home.formTitle")}</h2>
         <p className="text-sm text-[var(--color-muted)] mb-4">
-          We&apos;ll find mentors and career paths that match your background.
+          {t("home.formHint")}
         </p>
 
         {/* Row 1: Zip + School */}
@@ -91,7 +110,7 @@ export default function HomePage() {
             <input
               type="text"
               className="input-field"
-              placeholder="e.g. 95354"
+              placeholder="US ZIP (e.g. 95354 or 95354-1234)"
               value={form.zip_code || ""}
               onChange={(e) => update("zip_code", e.target.value)}
             />
@@ -161,7 +180,44 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Row 4: Dream description */}
+        {/* Row 4: Expected salary range */}
+        <div>
+          <label className="block text-sm font-medium mb-1.5">
+            Expected Salary Range (USD) <span className="text-[var(--color-muted)]">(optional)</span>
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input
+              type="number"
+              min={0}
+              step={1000}
+              className="input-field"
+              placeholder="Min (e.g. 70000)"
+              value={form.expected_salary_min ?? ""}
+              onChange={(e) =>
+                update(
+                  "expected_salary_min",
+                  e.target.value === "" ? undefined : Number.parseInt(e.target.value, 10)
+                )
+              }
+            />
+            <input
+              type="number"
+              min={0}
+              step={1000}
+              className="input-field"
+              placeholder="Max (e.g. 120000)"
+              value={form.expected_salary_max ?? ""}
+              onChange={(e) =>
+                update(
+                  "expected_salary_max",
+                  e.target.value === "" ? undefined : Number.parseInt(e.target.value, 10)
+                )
+              }
+            />
+          </div>
+        </div>
+
+        {/* Row 5: Dream description */}
         <div>
           <label className="block text-sm font-medium mb-1.5">
             Your Dream &amp; Goals <span className="text-[var(--color-muted)]">(optional)</span>
@@ -194,10 +250,10 @@ export default function HomePage() {
           {loading ? (
             <>
               <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Analyzing...
+              {t("home.analyzing")}
             </>
           ) : (
-            "🔍  Find My Path"
+            `🔍  ${t("home.findPath")}`
           )}
         </button>
       </motion.form>
