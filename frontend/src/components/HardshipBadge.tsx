@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useI18n } from "@/components/LanguageProvider";
 
 interface HardshipBadgeProps {
     score: number; // 0-1, 1 = most disadvantaged
@@ -8,33 +9,34 @@ interface HardshipBadgeProps {
 }
 
 export default function HardshipBadge({ score, fips }: HardshipBadgeProps) {
+    const { t } = useI18n();
     const percent = Math.round(score * 100);
 
     // Color gradient: green (low) → yellow (mid) → red (high hardship)
     const getColor = (s: number) => {
-        if (s < 0.33) return { bg: "rgba(74,222,128,0.15)", border: "#4ade80", text: "#4ade80", label: "Low" };
-        if (s < 0.66) return { bg: "rgba(251,191,36,0.15)", border: "#fbbf24", text: "#fbbf24", label: "Moderate" };
-        return { bg: "rgba(248,113,113,0.15)", border: "#f87171", text: "#f87171", label: "High" };
+        if (s < 0.33) return { bg: "rgba(74,222,128,0.15)", border: "#4ade80", text: "#4ade80", label: t("hardship.low") };
+        if (s < 0.66) return { bg: "rgba(251,191,36,0.15)", border: "#fbbf24", text: "#fbbf24", label: t("hardship.moderate") };
+        return { bg: "rgba(248,113,113,0.15)", border: "#f87171", text: "#f87171", label: t("hardship.high") };
     };
 
     const color = getColor(score);
     const factorRows =
         score >= 0.66
             ? [
-                "Broadband access: bottom 15%",
-                "Title I share: top 20%",
-                "Median income: bottom 20%",
+                t("hardship.f1.high"),
+                t("hardship.f2.high"),
+                t("hardship.f3.high"),
             ]
             : score >= 0.33
                 ? [
-                    "Broadband access: bottom 35%",
-                    "Title I share: top 35%",
-                    "Median income: bottom 35%",
+                    t("hardship.f1.mid"),
+                    t("hardship.f2.mid"),
+                    t("hardship.f3.mid"),
                 ]
                 : [
-                    "Broadband access: middle-to-strong range",
-                    "Title I share: moderate range",
-                    "Median income: middle-to-strong range",
+                    t("hardship.f1.low"),
+                    t("hardship.f2.low"),
+                    t("hardship.f3.low"),
                 ];
     const hardshipIntensity = Math.round(score * 100);
 
@@ -76,18 +78,18 @@ export default function HardshipBadge({ score, fips }: HardshipBadgeProps) {
 
             <div>
                 <p className="text-xs uppercase tracking-wider" style={{ color: color.text }}>
-                    {color.label} Hardship
+                    {t("hardship.title", { level: color.label })}
                 </p>
                 <p className="text-[0.7rem] text-[var(--color-muted)]">
-                    Area Economic Hardship Index{fips ? ` · FIPS ${fips}` : ""}
+                    {t("hardship.index")}{fips ? ` · FIPS ${fips}` : ""}
                 </p>
                 <details className="mt-2 text-xs text-[var(--color-muted)]">
                     <summary className="cursor-pointer hover:text-[var(--color-foreground)] transition-colors">
-                        Why this score and how we use it
+                        {t("hardship.why")}
                     </summary>
                     <div className="mt-2 space-y-3">
                         <div>
-                            <p className="text-[0.7rem] uppercase tracking-wider mb-1">Top-3 contributing factors</p>
+                            <p className="text-[0.7rem] uppercase tracking-wider mb-1">{t("hardship.top3")}</p>
                             <ul className="space-y-1 list-disc pl-4">
                                 {factorRows.map((item) => (
                                     <li key={item}>{item}</li>
@@ -95,19 +97,19 @@ export default function HardshipBadge({ score, fips }: HardshipBadgeProps) {
                             </ul>
                         </div>
                         <div>
-                            <p className="text-[0.7rem] uppercase tracking-wider mb-1">How it changes recommendations</p>
+                            <p className="text-[0.7rem] uppercase tracking-wider mb-1">{t("hardship.how")}</p>
                             <div className="space-y-1.5">
-                                <p>hardship ↑ ({hardshipIntensity}/100) → reachable mentor weight ↑</p>
-                                <p>hardship ↑ ({hardshipIntensity}/100) → low-cost path weight ↑</p>
-                                <p>hardship ↑ ({hardshipIntensity}/100) → elite-only path weight ↓</p>
+                                <p>{t("hardship.how1", { score: hardshipIntensity })}</p>
+                                <p>{t("hardship.how2", { score: hardshipIntensity })}</p>
+                                <p>{t("hardship.how3", { score: hardshipIntensity })}</p>
                             </div>
                         </div>
                         <div>
-                            <p className="text-[0.7rem] uppercase tracking-wider mb-1">Suggested supports</p>
+                            <p className="text-[0.7rem] uppercase tracking-wider mb-1">{t("hardship.supports")}</p>
                             <ul className="space-y-1 list-disc pl-4">
-                                <li>Prefer mobile-friendly learning resources</li>
-                                <li>Recommend local community college bridge programs</li>
-                                <li>Prioritize mentors who overcame similar constraints</li>
+                                <li>{t("hardship.s1")}</li>
+                                <li>{t("hardship.s2")}</li>
+                                <li>{t("hardship.s3")}</li>
                             </ul>
                         </div>
                     </div>

@@ -16,6 +16,40 @@ export default function HomePage() {
   const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const educationLabelMap: Record<string, string> = {
+    "High School": "Secundaria",
+    "Community College": "Community College",
+    "State University": "Universidad estatal",
+    "Flagship State University": "Universidad estatal principal",
+    "Private University": "Universidad privada",
+    "Ivy League": "Ivy League",
+  };
+  const functionLabelMap: Record<string, string> = {
+    "Software Engineering": "Ingeniería de software",
+    "Data Science": "Ciencia de datos",
+    "Product Management": "Gestión de producto",
+    Marketing: "Marketing",
+    Finance: "Finanzas",
+    Consulting: "Consultoría",
+    Design: "Diseño",
+    Sales: "Ventas",
+    Operations: "Operaciones",
+    "Human Resources": "Recursos humanos",
+    Legal: "Legal",
+    Healthcare: "Salud",
+    Education: "Educación",
+    Research: "Investigación",
+  };
+  const levelLabelMap: Record<string, string> = {
+    Intern: "Practicante",
+    Staff: "Staff",
+    "Senior Staff": "Senior Staff",
+    Manager: "Manager",
+    "Senior Manager": "Senior Manager",
+    Director: "Director",
+    VP: "VP",
+    "C-Suite": "C-Suite",
+  };
 
   const [form, setForm] = useState<StudentInput>({
     zip_code: "",
@@ -41,15 +75,15 @@ export default function HomePage() {
     setError("");
 
     if (!form.zip_code && !form.fips_code) {
-      setError("Please enter a Zip Code or FIPS Code.");
+      setError(t("home.error.zipOrFips"));
       return;
     }
     if (form.zip_code && !isValidUsZip(form.zip_code)) {
-      setError("Please enter a valid US ZIP code (12345 or 12345-6789, range 00501-99950).");
+      setError(t("home.error.invalidZip"));
       return;
     }
     if (!form.current_education || !form.target_function || !form.target_level) {
-      setError("Please fill in all required fields.");
+      setError(t("home.error.required"));
       return;
     }
     if (
@@ -57,7 +91,7 @@ export default function HomePage() {
       form.expected_salary_max !== undefined &&
       form.expected_salary_min > form.expected_salary_max
     ) {
-      setError("Expected salary min must be less than or equal to max.");
+      setError(t("home.error.salaryRange"));
       return;
     }
 
@@ -66,7 +100,7 @@ export default function HomePage() {
       const result = await analyzeStudent(form);
       router.push(`/results/${result.session_id}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? err.message : t("home.error.generic"));
     } finally {
       setLoading(false);
     }
@@ -105,24 +139,24 @@ export default function HomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Zip Code <span className="text-[var(--color-danger)]">*</span>
+              {t("home.label.zip")} <span className="text-[var(--color-danger)]">{t("home.required")}</span>
             </label>
             <input
               type="text"
               className="input-field"
-              placeholder="US ZIP (e.g. 95354 or 95354-1234)"
+              placeholder={t("home.placeholder.zip")}
               value={form.zip_code || ""}
               onChange={(e) => update("zip_code", e.target.value)}
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              School Name <span className="text-[var(--color-muted)]">(optional)</span>
+              {t("home.label.school")} <span className="text-[var(--color-muted)]">{t("home.optional")}</span>
             </label>
             <input
               type="text"
               className="input-field"
-              placeholder="e.g. Modesto Junior College"
+              placeholder={t("home.placeholder.school")}
               value={form.school_name || ""}
               onChange={(e) => update("school_name", e.target.value)}
             />
@@ -132,16 +166,16 @@ export default function HomePage() {
         {/* Row 2: Education */}
         <div>
           <label className="block text-sm font-medium mb-1.5">
-            Current Education Level <span className="text-[var(--color-danger)]">*</span>
+            {t("home.label.education")} <span className="text-[var(--color-danger)]">{t("home.required")}</span>
           </label>
           <select
             className="input-field"
             value={form.current_education}
             onChange={(e) => update("current_education", e.target.value)}
           >
-            <option value="">Select your education level</option>
+            <option value="">{t("home.placeholder.education")}</option>
             {EDUCATION_OPTIONS.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
+              <option key={opt} value={opt}>{educationLabelMap[opt] || opt}</option>
             ))}
           </select>
         </div>
@@ -150,31 +184,31 @@ export default function HomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Target Career Function <span className="text-[var(--color-danger)]">*</span>
+              {t("home.label.function")} <span className="text-[var(--color-danger)]">{t("home.required")}</span>
             </label>
             <select
               className="input-field"
               value={form.target_function}
               onChange={(e) => update("target_function", e.target.value)}
             >
-              <option value="">Select a function</option>
+              <option value="">{t("home.placeholder.function")}</option>
               {FUNCTION_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
+                <option key={opt} value={opt}>{functionLabelMap[opt] || opt}</option>
               ))}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Target Level <span className="text-[var(--color-danger)]">*</span>
+              {t("home.label.level")} <span className="text-[var(--color-danger)]">{t("home.required")}</span>
             </label>
             <select
               className="input-field"
               value={form.target_level}
               onChange={(e) => update("target_level", e.target.value)}
             >
-              <option value="">Select a level</option>
+              <option value="">{t("home.placeholder.level")}</option>
               {LEVEL_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
+                <option key={opt} value={opt}>{levelLabelMap[opt] || opt}</option>
               ))}
             </select>
           </div>
@@ -183,7 +217,7 @@ export default function HomePage() {
         {/* Row 4: Expected salary range */}
         <div>
           <label className="block text-sm font-medium mb-1.5">
-            Expected Salary Range (USD) <span className="text-[var(--color-muted)]">(optional)</span>
+            {t("home.label.salary")} <span className="text-[var(--color-muted)]">{t("home.optional")}</span>
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <input
@@ -191,7 +225,7 @@ export default function HomePage() {
               min={0}
               step={1000}
               className="input-field"
-              placeholder="Min (e.g. 70000)"
+              placeholder={t("home.placeholder.salaryMin")}
               value={form.expected_salary_min ?? ""}
               onChange={(e) =>
                 update(
@@ -205,7 +239,7 @@ export default function HomePage() {
               min={0}
               step={1000}
               className="input-field"
-              placeholder="Max (e.g. 120000)"
+              placeholder={t("home.placeholder.salaryMax")}
               value={form.expected_salary_max ?? ""}
               onChange={(e) =>
                 update(
@@ -220,17 +254,17 @@ export default function HomePage() {
         {/* Row 5: Dream description */}
         <div>
           <label className="block text-sm font-medium mb-1.5">
-            Your Dream &amp; Goals <span className="text-[var(--color-muted)]">(optional)</span>
+            {t("home.label.dream")} <span className="text-[var(--color-muted)]">{t("home.optional")}</span>
           </label>
           <textarea
             className="input-field resize-none"
             rows={3}
-            placeholder="Tell us about your career aspirations in a few sentences..."
+            placeholder={t("home.placeholder.dream")}
             value={form.dream_description || ""}
             onChange={(e) => update("dream_description", e.target.value)}
           />
           <p className="text-xs text-[var(--color-muted)] mt-1">
-            This is only used to personalize your icebreaker email — not for matching.
+            {t("home.dreamNote")}
           </p>
         </div>
 
@@ -266,9 +300,9 @@ export default function HomePage() {
         className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mt-16 text-center"
       >
         {[
-          { icon: "🗺️", title: "Career Paths", desc: "See the most common career trajectories from similar backgrounds" },
-          { icon: "👤", title: "Mentor Matching", desc: "Get matched with professionals who started where you are" },
-          { icon: "✉️", title: "Smart Icebreakers", desc: "AI-generated personalized emails to connect with mentors" },
+          { icon: "🗺️", title: t("home.feature.paths.title"), desc: t("home.feature.paths.desc") },
+          { icon: "👤", title: t("home.feature.mentor.title"), desc: t("home.feature.mentor.desc") },
+          { icon: "✉️", title: t("home.feature.email.title"), desc: t("home.feature.email.desc") },
         ].map((f, i) => (
           <div key={i} className="glass rounded-xl p-6 glass-hover transition-all">
             <span className="text-3xl mb-3 block">{f.icon}</span>

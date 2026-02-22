@@ -2,22 +2,13 @@
 
 import { motion } from "framer-motion";
 import type { MatchResult } from "@/lib/api";
+import { useI18n } from "@/components/LanguageProvider";
 
 interface MentorCardProps {
     match: MatchResult;
     index: number;
     onConnect: (profileId: string, score: number) => void;
 }
-
-const DIM_LABELS: Record<string, string> = {
-    geo_score: "Geography",
-    edu_tier_score: "Education",
-    hardship_score: "Background",
-    function_score: "Career Goal",
-    state_score: "State",
-    level_score: "Level",
-    salary_score: "Salary Fit",
-};
 
 function ScoreBar({ label, value }: { label: string; value: number }) {
     return (
@@ -40,8 +31,18 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
 }
 
 export default function MentorCard({ match, index, onConnect }: MentorCardProps) {
+    const { t } = useI18n();
     const snap = match.profile_snapshot;
     const totalPercent = Math.round(match.total_score * 100);
+    const dimLabels: Record<string, string> = {
+        geo_score: t("mentor.geography"),
+        edu_tier_score: t("mentor.education"),
+        hardship_score: t("mentor.background"),
+        function_score: t("mentor.careerGoal"),
+        state_score: t("mentor.state"),
+        level_score: t("mentor.level"),
+        salary_score: t("mentor.salaryFit"),
+    };
     const keySignals = ["geo_score", "edu_tier_score", "hardship_score"];
     const extraSignals = Object.entries(match.dimension_scores).filter(
         ([key]) => !keySignals.includes(key)
@@ -49,27 +50,27 @@ export default function MentorCard({ match, index, onConnect }: MentorCardProps)
 
     const bestSimilarity = (() => {
         const entries = Object.entries(match.dimension_scores).filter(
-            ([k]) => DIM_LABELS[k]
+            ([k]) => dimLabels[k]
         );
-        if (!entries.length) return "Balanced profile match";
+        if (!entries.length) return t("mentor.balanced");
         const [topKey] = entries.sort((a, b) => b[1] - a[1])[0];
-        if (topKey === "edu_tier_score") return "Key Similarity: Same school tier";
-        if (topKey === "hardship_score") return "Key Similarity: Similar hardship background";
-        if (topKey === "geo_score" || topKey === "state_score") return "Key Similarity: Similar geography";
-        if (topKey === "function_score") return "Key Similarity: Same target function";
-        if (topKey === "level_score") return "Key Similarity: Similar career level";
-        return "Key Similarity: Strong overall fit";
+        if (topKey === "edu_tier_score") return t("mentor.keySchool");
+        if (topKey === "hardship_score") return t("mentor.keyHardship");
+        if (topKey === "geo_score" || topKey === "state_score") return t("mentor.keyGeo");
+        if (topKey === "function_score") return t("mentor.keyFunction");
+        if (topKey === "level_score") return t("mentor.keyLevel");
+        return t("mentor.keyOverall");
     })();
 
     const companySizeLabel = (size: number | null) => {
-        if (!size) return "Unknown size";
-        if (size < 50) return "Small Company (< 50)";
-        if (size < 500) return "Mid-size Company (50–500)";
-        if (size < 5000) return "Large Company (500–5K)";
-        return "Enterprise (5K+)";
+        if (!size) return t("mentor.unknownSize");
+        if (size < 50) return t("mentor.sizeSmall");
+        if (size < 500) return t("mentor.sizeMid");
+        if (size < 5000) return t("mentor.sizeLarge");
+        return t("mentor.sizeEnterprise");
     };
     const formatMoney = (n?: number | null) =>
-        typeof n === "number" ? `$${n.toLocaleString()}` : "N/A";
+        typeof n === "number" ? `$${n.toLocaleString()}` : t("mentor.na");
 
     return (
         <motion.div
@@ -90,7 +91,7 @@ export default function MentorCard({ match, index, onConnect }: MentorCardProps)
                             Mentor #{match.profile_id.slice(0, 6).toUpperCase()}
                         </h3>
                         <p className="text-sm text-[var(--color-muted)]">
-                            {snap.current_title || "Professional"} · {snap.current_level || "N/A"}
+                            {snap.current_title || t("mentor.professional")} · {snap.current_level || t("mentor.na")}
                         </p>
                     </div>
                 </div>
@@ -106,22 +107,22 @@ export default function MentorCard({ match, index, onConnect }: MentorCardProps)
                     >
                         {totalPercent}%
                     </div>
-                    <span className="text-[0.65rem] text-[var(--color-muted)] mt-1">Match</span>
+                    <span className="text-[0.65rem] text-[var(--color-muted)] mt-1">{t("mentor.match")}</span>
                 </div>
             </div>
 
             {/* Info grid */}
             <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
                 <div className="glass rounded-lg p-3">
-                    <p className="text-[var(--color-muted)] text-xs mb-1">Industry</p>
-                    <p className="font-medium">{snap.industry || "Various"}</p>
+                    <p className="text-[var(--color-muted)] text-xs mb-1">{t("mentor.industry")}</p>
+                    <p className="font-medium">{snap.industry || "-"}</p>
                 </div>
                 <div className="glass rounded-lg p-3">
-                    <p className="text-[var(--color-muted)] text-xs mb-1">Company Size</p>
+                    <p className="text-[var(--color-muted)] text-xs mb-1">{t("mentor.companySize")}</p>
                     <p className="font-medium">{companySizeLabel(snap.company_size)}</p>
                 </div>
                 <div className="glass rounded-lg p-3 col-span-2">
-                    <p className="text-[var(--color-muted)] text-xs mb-1">Salary Trajectory</p>
+                    <p className="text-[var(--color-muted)] text-xs mb-1">{t("mentor.salaryTrajectory")}</p>
                     <p className="font-medium">
                         {formatMoney(snap.initial_salary)} → {formatMoney(snap.final_salary)}
                     </p>
@@ -137,14 +138,14 @@ export default function MentorCard({ match, index, onConnect }: MentorCardProps)
             {/* Education */}
             {snap.education_summary.length > 0 && (
                 <div className="mb-4">
-                    <p className="text-xs text-[var(--color-muted)] mb-1.5">Education</p>
+                    <p className="text-xs text-[var(--color-muted)] mb-1.5">{t("mentor.education")}</p>
                     <div className="flex flex-wrap gap-2">
                         {snap.education_summary.map((edu, i) => (
                             <span
                                 key={i}
                                 className="text-xs px-2.5 py-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)]"
                             >
-                                {edu.degree || "Degree"}{edu.field ? ` in ${edu.field}` : ""}
+                                {edu.degree || "Título"}{edu.field ? ` en ${edu.field}` : ""}
                             </span>
                         ))}
                     </div>
@@ -156,18 +157,18 @@ export default function MentorCard({ match, index, onConnect }: MentorCardProps)
                 {keySignals.map((key) => (
                     <ScoreBar
                         key={key}
-                        label={DIM_LABELS[key] || key}
+                        label={dimLabels[key] || key}
                         value={match.dimension_scores[key] ?? 0}
                     />
                 ))}
                 {extraSignals.length > 0 && (
                     <details className="pt-1">
                         <summary className="cursor-pointer text-xs text-[var(--color-muted)] hover:text-[var(--color-foreground)]">
-                            Details
+                            {t("mentor.details")}
                         </summary>
                         <div className="space-y-2 mt-2">
                             {extraSignals.map(([key, val]) => (
-                                <ScoreBar key={key} label={DIM_LABELS[key] || key} value={val} />
+                                <ScoreBar key={key} label={dimLabels[key] || key} value={val} />
                             ))}
                         </div>
                     </details>
@@ -179,7 +180,7 @@ export default function MentorCard({ match, index, onConnect }: MentorCardProps)
                 onClick={() => onConnect(match.profile_id, match.total_score)}
                 className="btn-primary w-full text-center text-sm"
             >
-                ✉️ &nbsp; Generate an intro message
+                ✉️ &nbsp; {t("mentor.generateIntro")}
             </button>
         </motion.div>
     );

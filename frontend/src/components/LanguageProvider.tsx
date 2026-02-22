@@ -20,9 +20,9 @@ const LanguageContext = createContext<Ctx | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>(() => {
-    if (typeof window === "undefined") return "en";
+    if (typeof window === "undefined") return "es";
     const stored = window.localStorage.getItem("echopath_lang");
-    return stored === "es" ? "es" : "en";
+    return stored === "en" ? "en" : "es";
   });
 
   useEffect(() => {

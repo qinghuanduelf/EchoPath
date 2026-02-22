@@ -51,7 +51,7 @@ export default function EmailPreview({
                 <div>
                     <h3 className="font-semibold text-lg">{t("email.previewTitle")}</h3>
                     <p className="text-sm text-[var(--color-muted)]">
-                        To: {mentorLabel} · Match Score: {Math.round(matchScore * 100)}%
+                        {t("email.to")}: {mentorLabel} · {t("email.matchScoreShort")}: {Math.round(matchScore * 100)}%
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -100,10 +100,10 @@ export default function EmailPreview({
                      rounded-xl p-4 text-sm leading-relaxed resize-y
                      focus:outline-none focus:border-[var(--color-primary)]
                      focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all"
-                    placeholder="Your generated email will appear here..."
+                    placeholder={t("email.placeholder")}
                 />
                 <p className="mt-3 text-xs text-[var(--color-muted)]">
-                    💡 You can edit the email above before copying. Make it personal!
+                    💡 {t("email.editHint")}
                 </p>
             </div>
         </motion.div>

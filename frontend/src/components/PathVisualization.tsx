@@ -10,6 +10,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { CareerPath } from "@/lib/api";
+import { useI18n } from "@/components/LanguageProvider";
 
 interface PathVisualizationProps {
     paths: CareerPath[];
@@ -22,12 +23,6 @@ const STAGE_COLORS: Record<string, { bg: string; border: string; icon: string }>
     current: { bg: "linear-gradient(135deg, #4ade80, #6ee7a0)", border: "#4ade80", icon: "⭐" },
 };
 
-const STAGE_LABELS: Record<string, string> = {
-    education: "Education",
-    first_job: "First Job",
-    mid_career: "Mid Career",
-    current: "Current Position",
-};
 
 /**
  * Custom node rendered inside React Flow.
@@ -38,7 +33,7 @@ const STAGE_LABELS: Record<string, string> = {
  *
  * Instead, we build proper Node[] with styled labels rendered by React Flow.
  */
-function buildFlowData(paths: CareerPath[]) {
+function buildFlowData(paths: CareerPath[], t: (key: string, vars?: Record<string, string | number>) => string) {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
 
@@ -49,14 +44,13 @@ function buildFlowData(paths: CareerPath[]) {
         const yOffset = pathIdx * Y_GAP;
         const sourceLabel =
             path.source === "rapidfire"
-                ? "Evidence-ranked"
-                : "Prototype sample (demo)";
+                ? t("path.evidenceRanked")
+                : t("path.prototype");
         const evidenceLabel =
             (path.evidence_count ?? 0) > 0
-                ? `evidence: ${path.evidence_count} alumni trajectory signals`
-                : "evidence: limited in demo";
-        const whyPath =
-            "Why this path: similar education starting point + realistic progression toward your target role.";
+                ? t("path.evidenceSignals", { count: path.evidence_count ?? 0 })
+                : t("path.evidenceLimited");
+        const whyPath = t("path.why");
 
         // Path label node (left side)
         const pathLabelId = `path-label-${pathIdx}`;
@@ -64,7 +58,7 @@ function buildFlowData(paths: CareerPath[]) {
             id: pathLabelId,
             position: { x: -280, y: yOffset + 15 },
             data: {
-                label: `Path ${pathIdx + 1} · ${path.total_people} people · ~${path.avg_years}yr\n${sourceLabel}\n${evidenceLabel}\n${whyPath}`,
+                label: `Ruta ${pathIdx + 1} · ${path.total_people} personas · ~${path.avg_years}a\n${sourceLabel}\n${evidenceLabel}\n${whyPath}`,
             },
             style: {
                 background: "transparent",
@@ -85,11 +79,17 @@ function buildFlowData(paths: CareerPath[]) {
             const stage = STAGE_COLORS[node.stage] || STAGE_COLORS.current;
             const nodeId = `p${pathIdx}-n${nodeIdx}`;
 
+            const stageLabels: Record<string, string> = {
+                education: t("path.education"),
+                first_job: t("path.firstJob"),
+                mid_career: t("path.midCareer"),
+                current: t("path.current"),
+            };
             nodes.push({
                 id: nodeId,
                 position: { x: nodeIdx * X_GAP, y: yOffset },
                 data: {
-                    label: `${stage.icon} ${STAGE_LABELS[node.stage] || node.stage}\n${node.label}\n${node.typical_duration > 0 ? `~${Math.round(node.typical_duration / 12)}yr` : ""}`,
+                    label: `${stage.icon} ${stageLabels[node.stage] || node.stage}\n${node.label}\n${node.typical_duration > 0 ? `~${Math.round(node.typical_duration / 12)}a` : ""}`,
                 },
                 style: {
                     background: "#1e1e36",
@@ -125,14 +125,15 @@ function buildFlowData(paths: CareerPath[]) {
 }
 
 export default function PathVisualization({ paths }: PathVisualizationProps) {
-    const { nodes, edges } = useMemo(() => buildFlowData(paths), [paths]);
+    const { t } = useI18n();
+    const { nodes, edges } = useMemo(() => buildFlowData(paths, t), [paths, t]);
     const onInit = useCallback(() => {}, []);
 
     if (paths.length === 0) {
         return (
             <div className="glass rounded-2xl p-8 text-center text-[var(--color-muted)]">
-                <p className="text-lg mb-2">📭 No career paths found</p>
-                <p className="text-sm">Try broadening your search criteria.</p>
+                <p className="text-lg mb-2">📭 {t("path.noFound")}</p>
+                <p className="text-sm">{t("path.tryBroad")}</p>
             </div>
         );
     }

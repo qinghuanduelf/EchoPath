@@ -57,37 +57,37 @@ function buildSkillPlan(path: CareerPath) {
     const text = path.nodes.map((n) => n.label.toLowerCase()).join(" ");
     if (text.includes("marketing")) {
         return {
-            skills: ["Campaign analytics", "Lifecycle messaging", "A/B testing basics"],
+            skills: ["Analítica de campañas", "Mensajería de ciclo de vida", "Fundamentos de A/B testing"],
             resources: [
-                "Google Skillshop (free, mobile-friendly)",
-                "HubSpot Academy short modules (free)",
-                "YouTube playlists with offline download support",
+                "Google Skillshop (gratis, apto para móvil)",
+                "Módulos cortos de HubSpot Academy (gratis)",
+                "Listas de YouTube con descarga offline",
             ],
-            hours: "6–10 hours",
-            why: "These skills appear frequently at the first transition into growth/manager-track marketing roles.",
+            hours: "6-10 horas",
+            why: "Estas habilidades aparecen con frecuencia en la primera transición hacia roles de crecimiento/manager en marketing.",
         };
     }
     if (text.includes("engineering") || text.includes("technology")) {
         return {
-            skills: ["SQL + data reasoning", "System design fundamentals", "Cross-team communication"],
+            skills: ["SQL y razonamiento de datos", "Fundamentos de diseño de sistemas", "Comunicación entre equipos"],
             resources: [
-                "freeCodeCamp modules (free)",
-                "ByteByteGo summaries (low-bandwidth reading)",
-                "LeetCode starter tracks (free tier)",
+                "Módulos de freeCodeCamp (gratis)",
+                "Resúmenes de ByteByteGo (lectura de bajo ancho de banda)",
+                "Rutas iniciales de LeetCode (plan gratuito)",
             ],
-            hours: "8–12 hours",
-            why: "These skills are common gatekeepers when moving from staff to senior/manager engineering roles.",
+            hours: "8-12 horas",
+            why: "Estas habilidades suelen ser requisitos clave para pasar de staff a roles senior/manager en ingeniería.",
         };
     }
     return {
-        skills: ["Structured communication", "Spreadsheet analysis", "Project planning basics"],
+        skills: ["Comunicación estructurada", "Análisis en hojas de cálculo", "Bases de planificación de proyectos"],
         resources: [
-            "Coursera audit mode courses",
-            "Local library digital learning portals",
-            "Mobile-first micro-learning playlists",
+            "Cursos en modo auditoría de Coursera",
+            "Portales digitales de aprendizaje de bibliotecas locales",
+            "Playlists de microaprendizaje pensadas para móvil",
         ],
-        hours: "6–9 hours",
-        why: "These are the most transferable skills observed in the first jump of similar trajectories.",
+        hours: "6-9 horas",
+        why: "Estas son las habilidades más transferibles observadas en el primer salto de trayectorias similares.",
     };
 }
 
@@ -121,13 +121,13 @@ export default function ResultsPage({ params }: PageProps) {
                     setHardship(firstMatch.dimension_scores.hardship_score ?? null);
                 }
             } catch (err: unknown) {
-                setError(err instanceof Error ? err.message : "Failed to load results.");
+                setError(err instanceof Error ? err.message : t("results.errorLoad"));
             } finally {
                 setLoading(false);
             }
         }
         load();
-    }, [sessionId]);
+    }, [sessionId, t]);
 
     const handleConnect = (profileId: string, score: number) => {
         router.push(`/email/${sessionId}/${profileId}?score=${score}`);
@@ -162,7 +162,7 @@ export default function ResultsPage({ params }: PageProps) {
             <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <span className="inline-block w-10 h-10 border-3 border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin" />
-                    <p className="text-[var(--color-muted)]">Loading your results...</p>
+                    <p className="text-[var(--color-muted)]">{t("results.loading")}</p>
                 </div>
             </div>
         );
@@ -175,7 +175,7 @@ export default function ResultsPage({ params }: PageProps) {
                     <p className="text-xl mb-2">😕</p>
                     <p className="text-[var(--color-danger)] mb-4">{error}</p>
                     <button onClick={() => router.push("/")} className="btn-primary">
-                        ← Start Over
+                        ← {t("results.startOver")}
                     </button>
                 </div>
             </div>
@@ -195,8 +195,7 @@ export default function ResultsPage({ params }: PageProps) {
                         <span className="gradient-text">{t("results.title")}</span>
                     </h1>
                     <p className="text-[var(--color-muted)] mt-1">
-                        {visibleMatches.length} potential mentor{visibleMatches.length !== 1 ? "s" : ""} found ·{" "}
-                        {visiblePaths.length} career path{visiblePaths.length !== 1 ? "s" : ""} identified
+                        {t("results.stats", { mentors: visibleMatches.length, paths: visiblePaths.length })}
                     </p>
                 </div>
                 {hardship !== null && <HardshipBadge score={hardship} />}
@@ -252,23 +251,23 @@ export default function ResultsPage({ params }: PageProps) {
                         return (
                             <details key={`plan-${idx}`} className="glass rounded-xl p-4">
                                 <summary className="cursor-pointer font-medium text-sm">
-                                    Next 30 days plan · Path {idx + 1}
+                                    {t("results.next30", { index: idx + 1 })}
                                 </summary>
                                 <div className="mt-3 space-y-2 text-sm">
                                     <div>
-                                        <p className="text-xs text-[var(--color-muted)] mb-1">Top 3 skills</p>
+                                        <p className="text-xs text-[var(--color-muted)] mb-1">{t("results.skillsTop3")}</p>
                                         <ul className="list-disc pl-5 space-y-1">
                                             {plan.skills.map((s) => <li key={s}>{s}</li>)}
                                         </ul>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-[var(--color-muted)] mb-1">Low-cost resources</p>
+                                        <p className="text-xs text-[var(--color-muted)] mb-1">{t("results.lowCost")}</p>
                                         <ul className="list-disc pl-5 space-y-1">
                                             {plan.resources.map((r) => <li key={r}>{r}</li>)}
                                         </ul>
                                     </div>
-                                    <p><span className="text-[var(--color-muted)]">Estimated time:</span> {plan.hours}</p>
-                                    <p><span className="text-[var(--color-muted)]">Why these skills:</span> {plan.why}</p>
+                                    <p><span className="text-[var(--color-muted)]">{t("results.time")}</span> {plan.hours}</p>
+                                    <p><span className="text-[var(--color-muted)]">{t("results.whySkills")}</span> {plan.why}</p>
                                 </div>
                             </details>
                         );
@@ -308,17 +307,17 @@ export default function ResultsPage({ params }: PageProps) {
                 <div className="glass rounded-xl p-5">
                     <h3 className="font-semibold mb-2">📍 {t("results.localSupport")}</h3>
                     <ul className="text-sm text-[var(--color-muted)] space-y-1 list-disc pl-5">
-                        <li>Nearest community college bridge programs (sample listing)</li>
-                        <li>Public library digital career resources (sample listing)</li>
-                        <li>Low-cost connectivity/device assistance channels (sample listing)</li>
+                        <li>{t("results.local1")}</li>
+                        <li>{t("results.local2")}</li>
+                        <li>{t("results.local3")}</li>
                     </ul>
                 </div>
                 <div className="glass rounded-xl p-5">
                     <h3 className="font-semibold mb-2">✅ {t("results.fairness")}</h3>
                     <ul className="text-sm text-[var(--color-muted)] space-y-1 list-disc pl-5">
-                        <li>{fairnessChecks.hasSimilarHardship ? "Pass" : "Needs review"}: at least 1 mentor with similar hardship background</li>
-                        <li>{fairnessChecks.hasAspirationalPath ? "Pass" : "Needs review"}: at least 1 path classified as aspirational</li>
-                        <li>Pass: protected attributes are not used directly in matching features</li>
+                        <li>{fairnessChecks.hasSimilarHardship ? t("results.pass") : t("results.needsReview")}: {t("results.fair1")}</li>
+                        <li>{fairnessChecks.hasAspirationalPath ? t("results.pass") : t("results.needsReview")}: {t("results.fair2")}</li>
+                        <li>{t("results.pass")}: {t("results.fair3")}</li>
                     </ul>
                 </div>
             </section>
